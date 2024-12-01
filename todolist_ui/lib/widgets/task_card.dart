@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../models/task_model.dart';
+import '../models/task_model.dart';  // Ensure this includes all necessary properties like title, category, dueDate
 
 class TaskCard extends StatelessWidget {
   final Task task;
-  final ValueChanged<bool?>? onChanged; // Callback for checkbox
+  final ValueChanged<bool?> onChanged;
 
-  TaskCard({required this.task, this.onChanged});
+  TaskCard({required this.task, required this.onChanged});
 
   @override
   Widget build(BuildContext context) {
     // Format the due date
-    String formattedDate = DateFormat('MMMM d, yyyy').format(task.dueDate);
+    String formattedDate = DateFormat('MMMM d').format(task.dueDate);
 
     // Define color based on category
     Color categoryColor;
@@ -31,13 +31,21 @@ class TaskCard extends StatelessWidget {
 
     return Card(
       elevation: 0,
-      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 16.0),
+      margin: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 10.0),
       child: ListTile(
         leading: Checkbox(
           value: task.status == 'Completed',
           onChanged: onChanged,
         ),
-        title: Text(task.title, style: TextStyle(fontSize: 14)),
+        title: Text(
+          task.title,
+          style: TextStyle(
+            fontSize: 14,
+            decoration: task.status == 'Completed'
+                ? TextDecoration.lineThrough
+                : TextDecoration.none, // Strikethrough for completed tasks
+          ),
+        ),
         subtitle: Text('Due: $formattedDate'),
         trailing: Container(
           padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0), // Smaller padding
@@ -54,3 +62,4 @@ class TaskCard extends StatelessWidget {
     );
   }
 }
+

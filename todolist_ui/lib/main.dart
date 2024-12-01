@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart'; // Import Riverpod
 import 'screens/dashboard_screen.dart';
 
 void main() {
-  runApp(ToDoApp());
+  runApp(
+    ProviderScope( // Wrap the app in ProviderScope
+      child: ToDoApp(),
+    ),
+  );
 }
 
 class ToDoApp extends StatelessWidget {

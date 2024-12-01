@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'addnote_screen.dart'; // Import the AddNoteScreen
 import '../widgets/notes_card.dart'; // Import your NotesCard widget
+import 'viewnote_screen.dart'; // Import NoteDetailScreen
 
 class NotesScreen extends StatefulWidget {
   @override
@@ -8,24 +9,12 @@ class NotesScreen extends StatefulWidget {
 }
 
 class _NotesScreenState extends State<NotesScreen> {
-  List<Map<String, String>> notes = [
-    {
-      'title': 'Meeting Notes',
-      'content': 'Discuss project milestones and deadlines.',
-    },
-    {
-      'title': 'Grocery List',
-      'content': 'Eggs, Milk, Bread, Butter',
-    },
-    {
-      'title': 'Workout Plan',
-      'content': 'Monday: Chest, Tuesday: Back, Wednesday: Legs',
-    },
-  ]; // Dummy data for notes
+  // Initialize the notes list as an empty list
+  List<Map<String, String>> notes = [];
 
   void _addNote(Map<String, String> note) {
     setState(() {
-      notes.add(note); // Add note to the list
+      notes.add(note); // Add the new note to the list
     });
   }
 
@@ -35,12 +24,20 @@ class _NotesScreenState extends State<NotesScreen> {
     });
   }
 
+  // Method to navigate to NoteDetailScreen
+  void _viewNoteDetail(String title, String content) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => NoteDetailScreen(title: title, content: content),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      /* appBar: AppBar(
-        title: Text('My Notes'),
-      ),*/
+      backgroundColor: Colors.white,
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -61,9 +58,8 @@ class _NotesScreenState extends State<NotesScreen> {
                       MaterialPageRoute(builder: (context) => AddNoteScreen()),
                     );
 
-                    // If a new note is returned, add it to the list
                     if (newNote != null) {
-                      _addNote(newNote);
+                      _addNote(newNote); // If a new note is added, update the notes list
                     }
                   },
                 ),
@@ -71,20 +67,30 @@ class _NotesScreenState extends State<NotesScreen> {
             ),
             SizedBox(height: 5), // Space between header and list
             Expanded(
-              child: ListView.builder(
-                itemCount: notes.length,
-                itemBuilder: (context, index) {
-                  return Container(
-                    padding: EdgeInsets.symmetric(horizontal: 5.0), // Set left and right padding
-                    child: NotesCard(
-                      noteTitle: notes[index]['title']!,
-                      noteContent: notes[index]['content']!,
-                      onDelete: () =>
-                          _deleteNote(index), // Handle delete action
+              child: notes.isEmpty
+                  ? Center(
+                      child: Text(
+                        'Notes are empty',
+                        style: TextStyle(fontSize: 18, color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: notes.length, // Show the notes dynamically
+                      itemBuilder: (context, index) {
+                        return GestureDetector(
+                          onTap: () => _viewNoteDetail(
+                              notes[index]['title']!, notes[index]['content']!), // Navigate to NoteDetailScreen on tap
+                          child: Container(
+                            padding: EdgeInsets.symmetric(horizontal: 5.0), // Set left and right padding
+                            child: NotesCard(
+                              noteTitle: notes[index]['title']!,
+                              noteContent: notes[index]['content']!,
+                              onDelete: () => _deleteNote(index), // Handle delete action
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),

@@ -1,104 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../providers/task_provider.dart';
 import '../widgets/task_card.dart';
-import '../models/task_model.dart';
-import 'taskdetails_screen.dart'; // Import the TaskDetailScreen
+import 'new_task_event.dart';
 
-class TaskListScreen extends StatefulWidget {
+class TaskListScreen extends ConsumerStatefulWidget {
   @override
   _TaskListScreenState createState() => _TaskListScreenState();
 }
 
-class _TaskListScreenState extends State<TaskListScreen> {
-  List<Task> tasks = [
-    Task(
-        title: 'Sample Task 0',
-        category: 'School',
-        dueDate: DateTime.now(),
-        status: 'Pending'),
-    Task(
-        title: 'Sample Task 1',
-        category: 'Work',
-        dueDate: DateTime.now(),
-        status: 'Pending'),
-    Task(
-        title: 'Sample Task 2',
-        category: 'Personal',
-        dueDate: DateTime.now(),
-        status: 'Completed'),
-  ];
-
-  String? selectedFilterCategory;
-  String? selectedFilterStatus;
+class _TaskListScreenState extends ConsumerState<TaskListScreen> {
   String searchQuery = '';
-
-  void _toggleTaskStatus(int index, bool? value) {
-    setState(() {
-      tasks[index].status =
-          value == true ? 'Completed' : 'Pending'; // Update task status
-    });
-  }
-
-  List<Task> get filteredTasks {
-    return tasks.where((task) {
-      final matchesSearch =
-          task.title.toLowerCase().contains(searchQuery.toLowerCase());
-      final matchesCategory = selectedFilterCategory == null ||
-          task.category == selectedFilterCategory;
-      final matchesStatus =
-          selectedFilterStatus == null || task.status == selectedFilterStatus;
-
-      return matchesSearch && matchesCategory && matchesStatus;
-    }).toList();
-  }
+  String? selectedStatusFilter = 'Pending';
 
   void _showFilterDialog() {
     showDialog(
       context: context,
-      builder: (BuildContext context) {
+      builder: (context) {
         return AlertDialog(
           title: Text('Filter Tasks'),
-          content: SingleChildScrollView(
-            child: Column(
-              children: [
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(labelText: 'Category'),
-                  value: selectedFilterCategory,
-                  items: <String>['School', 'Work', 'Personal', 'Others'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedFilterCategory = value;
-                    });
-                  },
-                ),
-                DropdownButtonFormField<String>(
-                  decoration: InputDecoration(labelText: 'Status'),
-                  value: selectedFilterStatus,
-                  items: <String>['Not Yet Started', 'Pending', 'Completed'].map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (value) {
-                    setState(() {
-                      selectedFilterStatus = value;
-                    });
-                  },
-                ),
-              ],
-            ),
+          content: DropdownButton<String>(
+            value: selectedStatusFilter,
+            items: [
+              DropdownMenuItem(value: null, child: Text('All')),
+              DropdownMenuItem(value: 'Completed', child: Text('Completed')),
+              DropdownMenuItem(value: 'Pending', child: Text('Pending')),
+            ],
+            onChanged: (value) {
+              setState(() {
+                selectedStatusFilter = value;
+              });
+              Navigator.of(context).pop();
+            },
           ),
           actions: [
             TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: Text('Apply'),
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('Close'),
             ),
           ],
         );
@@ -106,44 +44,32 @@ class _TaskListScreenState extends State<TaskListScreen> {
     );
   }
 
-  void _navigateToDetail(Task task) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => TaskDetailScreen(
-          task: task,
-          onDelete: (deletedTask) {
-            setState(() {
-              tasks.remove(deletedTask); // Remove task from list
-            });
-          },
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final tasks = ref.watch(taskProvider);
+
+    // Filter tasks based on search query and status
+    final filteredTasks = tasks.where((task) {
+      final matchesSearch =
+          task.title.toLowerCase().contains(searchQuery.toLowerCase());
+      final matchesStatus =
+          selectedStatusFilter == null || task.status == selectedStatusFilter;
+
+      return matchesSearch && matchesStatus;
+    }).toList();
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
-        title: Padding(
-          padding: const EdgeInsets.only(top: 20.0), // Adjust top padding here
-          child: Text(
-            'Tasks List',
-            style: TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
+        title: Text('Tasks List', style: TextStyle(fontWeight: FontWeight.bold)),
         backgroundColor: Colors.white,
         foregroundColor: Color.fromRGBO(56, 116, 120, 1),
       ),
       body: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0), // Set padding for the entire row
+            padding: const EdgeInsets.all(8.0),
             child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.center, // Center the row contents
               children: [
                 Expanded(
                   child: TextField(
@@ -154,32 +80,80 @@ class _TaskListScreenState extends State<TaskListScreen> {
                     ),
                     onChanged: (value) {
                       setState(() {
-                        searchQuery = value; // Update search query
+                        searchQuery = value;
                       });
                     },
                   ),
                 ),
-                SizedBox(width: 10), // Add space between search bar and filter button
+                SizedBox(width: 10),
                 IconButton(
-                  icon: Icon(Icons.filter_list), // Filter icon
-                  onPressed: _showFilterDialog, // Show filter dialog
+                  icon: Icon(Icons.filter_list),
+                  onPressed: _showFilterDialog,
+                ),
+                IconButton(
+                  icon: Icon(Icons.add),
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (context) => AddTaskEventScreen(
+                          onTaskSaved: () {
+                            setState(() {
+                              // Refresh task list after adding a new task
+                            });
+                          },
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ],
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: filteredTasks.length,
-              itemBuilder: (context, index) {
-                return GestureDetector( // Wrap TaskCard with GestureDetector
-                  onTap: () => _navigateToDetail(filteredTasks[index]), // Navigate on tap
-                  child: TaskCard(
-                    task: filteredTasks[index],
-                    onChanged: (value) => _toggleTaskStatus(index, value), // Pass callback for checkbox
+            child: filteredTasks.isEmpty
+                ? Center(
+                    child: Text(
+                      'No tasks found',
+                      style: TextStyle(color: Colors.grey, fontSize: 16),
+                    ),
+                  )
+                : ListView.builder(
+                    itemCount: filteredTasks.length,
+                    itemBuilder: (context, index) {
+                      final task = filteredTasks[index];
+                      return Dismissible(
+                        key: ValueKey(task.id),
+                        direction: DismissDirection.endToStart,
+                        background: Container(
+                          color: Colors.red,
+                          alignment: Alignment.centerRight,
+                          padding: EdgeInsets.symmetric(horizontal: 20),
+                          child: Icon(
+                            Icons.delete,
+                            color: Colors.white,
+                          ),
+                        ),
+                        onDismissed: (direction) {
+                          ref.read(taskProvider.notifier).deleteTask(task);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text('Task "${task.title}" deleted')),
+                          );
+                        },
+                        child: TaskCard(
+                          task: task,
+                          onChanged: (isChecked) {
+                            if (isChecked != null) {
+                              ref.read(taskProvider.notifier).updateTask(
+                                    task.copyWith(
+                                      status: isChecked ? 'Completed' : 'Pending',
+                                    ),
+                                  );
+                            }
+                          },
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
